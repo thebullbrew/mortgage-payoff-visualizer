@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Burn the Mortgage — Payoff Visualizer</title>
+<meta name="description" content="See what extra payments do to your mortgage: payoff date, interest saved, year by year.">
+<meta name="theme-color" content="#090909">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<style>
+:root{
+  --bg:#090909; --surface:#111111; --surface2:#161616;
+  --text:#F6F1E3; --muted:#B9B09A;
+  --gold:#D4AF37; --gold-hi:#F0D878; --gold-deep:#7A5C1E;
+  --line:#2A2A26;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:Georgia,'Times New Roman',serif; line-height:1.55;
+  background-image:radial-gradient(1200px 500px at 50% -80px, rgba(212,175,55,.07), transparent 70%);
+}
+.wrap{max-width:1060px; margin:0 auto; padding:0 20px 80px;}
+.eyebrow{
+  text-align:center; color:var(--gold); letter-spacing:.42em; text-transform:uppercase;
+  font-size:11px; margin:34px 0 14px; font-family:Verdana,Geneva,sans-serif;
+}
+h1{
+  text-align:center; font-size:clamp(40px,7vw,68px); margin:0 0 10px; font-weight:700;
+  letter-spacing:.01em;
+}
+h1 .g{color:var(--gold);}
+.rule{height:3px; background:linear-gradient(90deg,transparent,var(--gold),transparent); border:0; margin:22px auto; max-width:520px;}
+.lede{text-align:center; color:var(--muted); font-style:italic; max-width:640px; margin:0 auto 26px; font-size:17px;}
+.steps{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:0 0 34px;}
+@media(max-width:640px){.steps{grid-template-columns:1fr;}}
+.step{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px;}
+.step b{color:var(--gold); display:block; font-size:13px; letter-spacing:.14em; text-transform:uppercase; font-family:Verdana,Geneva,sans-serif; margin-bottom:6px;}
+.step span{color:var(--muted); font-size:14.5px;}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:22px; margin-bottom:22px;}
+.card h2{margin:0 0 4px; font-size:24px; color:var(--text);}
+.card h2 .g{color:var(--gold);}
+.card .sub{color:var(--muted); font-style:italic; margin:0 0 18px; font-size:15px;}
+/* hero card with gilded corner flourishes */
+.hero{position:relative; border:2px solid var(--gold); text-align:center; padding:34px 22px 30px; overflow:hidden;
+  background:linear-gradient(180deg,#141414,#0d0d0d);}
+.hero::before,.hero::after{
+  content:""; position:absolute; width:44px; height:44px; border:3px solid var(--gold);
+}
+.hero::before{top:8px; left:8px; border-right:0; border-bottom:0;}
+.hero::after{bottom:8px; right:8px; border-left:0; border-top:0;}
+.hero .kicker{color:var(--gold); letter-spacing:.3em; text-transform:uppercase; font-size:11px; font-family:Verdana,Geneva,sans-serif;}
+.hero .bignum{font-size:clamp(52px,10vw,96px); color:var(--gold); font-weight:700; line-height:1.05; margin:10px 0 4px;
+  text-shadow:0 2px 18px rgba(212,175,55,.25);}
+.hero .bigsub{color:var(--text); font-size:19px; margin:0 0 18px;}
+.hero-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:18px;}
+@media(max-width:640px){.hero-grid{grid-template-columns:1fr;}}
+.hero-cell{border-top:3px solid var(--gold-deep); padding-top:12px;}
+.hero-cell .lab{color:var(--muted); font-size:12.5px; letter-spacing:.18em; text-transform:uppercase; font-family:Verdana,Geneva,sans-serif;}
+.hero-cell .val{color:var(--gold-hi); font-size:26px; font-weight:700; margin-top:4px;}
+.hero-cell .val.plain{color:var(--text);}
+/* inputs */
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+@media(max-width:640px){.grid2{grid-template-columns:1fr;}}
+.field{margin-bottom:16px;}
+.field label{display:block; color:var(--gold); font-size:12.5px; letter-spacing:.16em; text-transform:uppercase; font-family:Verdana,Geneva,sans-serif; margin-bottom:8px;}
+.field input[type=number],.field input[type=text]{
+  width:100%; background:#0a0a0a; border:1px solid var(--line); color:var(--text);
+  font-size:20px; padding:12px 14px; border-radius:8px; font-family:Georgia,serif;
+}
+.field input:focus{outline:2px solid var(--gold); border-color:var(--gold);}
+input[type=range]{width:100%; accent-color:var(--gold); height:34px;}
+.range-row{display:flex; align-items:center; gap:12px;}
+.range-val{color:var(--gold-hi); font-size:24px; font-weight:700; min-width:110px; text-align:right; white-space:nowrap;}
+.btn{
+  display:inline-block; border:0; cursor:pointer; font-family:Georgia,serif; font-weight:700; font-size:17px;
+  color:#0a0a0a; background:linear-gradient(180deg,var(--gold-hi),var(--gold));
+  padding:13px 26px; border-radius:9px; letter-spacing:.02em;
+  box-shadow:0 2px 14px rgba(212,175,55,.28);
+}
+.btn:active{transform:translateY(1px);}
+.btn.ghost{background:transparent; color:var(--gold); border:1px solid var(--gold); box-shadow:none; font-size:14px; padding:9px 16px;}
+/* chart */
+.chart-wrap{background:#0a0a0a; border:1px solid var(--line); border-radius:10px; padding:14px 8px 4px;}
+.legend{display:flex; gap:22px; justify-content:center; margin:10px 0 4px; flex-wrap:wrap; font-size:14px; color:var(--muted);}
+.sw{display:inline-block; width:26px; height:4px; vertical-align:middle; margin-right:8px; border-radius:2px;}
+/* table */
+.tblwrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px;}
+table{width:100%; border-collapse:collapse; font-size:14.5px; min-width:560px;}
+th{color:var(--gold); text-align:right; padding:10px 12px; border-bottom:2px solid var(--gold-deep); font-size:12px; letter-spacing:.12em; text-transform:uppercase; font-family:Verdana,Geneva,sans-serif; white-space:nowrap;}
+th:first-child,td:first-child{text-align:left;}
+td{padding:9px 12px; border-bottom:1px solid var(--line); text-align:right; font-variant-numeric:tabular-nums;}
+td.yr{color:var(--gold);}
+tr:last-child td{border-bottom:0;}
+tr.done td{color:var(--muted);}
+/* explainer */
+.explain p{color:var(--muted); font-size:16px;}
+.explain b{color:var(--gold-hi);}
+/* scenarios */
+.scen{display:flex; align-items:center; justify-content:space-between; gap:10px; background:#0d0d0d; border:1px solid var(--line); border-radius:8px; padding:10px 14px; margin-bottom:10px;}
+.scen .nm{font-size:16px;}
+.scen .meta{color:var(--muted); font-size:13.5px;}
+.scen .acts{display:flex; gap:8px;}
+.linklike{background:none;border:0;color:var(--gold);cursor:pointer;font-family:Georgia,serif;font-size:14px;text-decoration:underline; padding:4px;}
+footer{margin-top:44px; text-align:center; color:var(--muted); font-size:13.5px; font-style:italic;}
+footer .rule{max-width:300px;}
+.note{font-size:13.5px; color:var(--muted); font-style:italic;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">The Bull Brew &middot; Daily Tool</div>
+  <h1>Burn the <span class="g">Mortgage</span></h1>
+  <hr class="rule">
+  <p class="lede">What if you threw an extra few hundred at the mortgage every month? Watch the payoff date sprint toward you and a pile of interest vanish.</p>
+
+  <div class="steps">
+    <div class="step"><b>1 &middot; Your loan</b><span>Enter balance, rate, and time left on the mortgage.</span></div>
+    <div class="step"><b>2 &middot; Your extra</b><span>Drag the slider. The payoff date moves live.</span></div>
+    <div class="step"><b>3 &middot; The proof</b><span>Chart, year-by-year table, interest saved — then save the plan.</span></div>
+  </div>
+
+  <div class="card hero" id="heroCard">
+    <div class="kicker">With your extra payments</div>
+    <div class="bignum" id="savedBig">—</div>
+    <p class="bigsub" id="savedSub">of mortgage payments erased</p>
+    <div class="hero-grid">
+      <div class="hero-cell"><div class="lab">Debt-free on</div><div class="val" id="dateFast">—</div></div>
+      <div class="hero-cell"><div class="lab">Instead of</div><div class="val plain" id="dateBase">—</div></div>
+      <div class="hero-cell"><div class="lab">Interest you keep</div><div class="val" id="intSaved">—</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Your <span class="g">numbers</span></h2>
+    <p class="sub">Drag the sliders. The verdict updates live. No account, no tracking — everything stays in your browser.</p>
+    <div class="grid2">
+      <div class="field"><label for="bal">Loan balance</label><input id="bal" type="number" inputmode="decimal" min="0" step="1000" value="300000"></div>
+      <div class="field"><label for="rate">Interest rate (APR %)</label><input id="rate" type="number" inputmode="decimal" min="0" max="25" step="0.125" value="6.5"></div>
+      <div class="field"><label for="termY">Years left on the loan</label><input id="termY" type="number" min="0" max="40" step="1" value="30"></div>
+      <div class="field"><label for="termM">Extra months left</label><input id="termM" type="number" min="0" max="11" step="1" value="0"></div>
+    </div>
+    <div class="field">
+      <label for="extra">Extra payment every month</label>
+      <div class="range-row"><input id="extra" type="range" min="0" max="2000" step="25" value="300"><span class="range-val" id="extraVal">$300</span></div>
+    </div>
+    <div class="field">
+      <label for="lump">One-time lump sum (optional)</label>
+      <input id="lump" type="number" inputmode="decimal" min="0" step="500" value="0">
+    </div>
+    <p class="note" id="payNote"></p>
+  </div>
+
+  <div class="card">
+    <h2>The <span class="g">burn-down</span></h2>
+    <p class="sub">Balance over time. Gold is you with extra payments — watch it dive.</p>
+    <div class="chart-wrap"><svg id="chart" viewBox="0 0 720 360" width="100%" role="img" aria-label="Balance over time chart"></svg></div>
+    <div class="legend">
+      <span><span class="sw" style="background:#D4AF37"></span>With extra payments</span>
+      <span><span class="sw" style="background:#5c5c58"></span>Minimum payments</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Year by <span class="g">year</span></h2>
+    <p class="sub">End-of-year balance and total interest paid, both paths side by side.</p>
+    <div class="tblwrap"><table>
+      <thead><tr><th>Year</th><th>Balance · minimum</th><th>Interest · minimum</th><th>Balance · with extra</th><th>Interest · with extra</th></tr></thead>
+      <tbody id="ytbody"></tbody>
+    </table></div>
+  </div>
+
+  <div class="card explain">
+    <h2>Why the bank gets <span class="g">paid first</span></h2>
+    <p>Every month, your interest charge is the rate times your <b>current balance</b> — so early on, when the balance is fattest, most of your payment is interest and barely dents the principal. An extra dollar of principal <b>today</b> doesn't just cut the balance by a dollar; it kills every future interest charge that dollar would have generated for the rest of the loan. That's why small extra payments, started early, erase <b>years</b> — you're not paying faster, you're starving the interest.</p>
+  </div>
+
+  <div class="card">
+    <h2>Saved <span class="g">scenarios</span></h2>
+    <p class="sub">Keep the plans worth comparing. Stored only in this browser.</p>
+    <button class="btn ghost" id="saveBtn">Save this scenario</button>
+    <div id="scenList" style="margin-top:14px;"></div>
+  </div>
+
+  <footer><hr class="rule">Burn the Mortgage · a Bull Brew daily tool · estimates only, not financial advice.</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+var LSKEY = "mpv.scenarios.v1";
+
+function money(n){ return "$" + Math.round(n).toLocaleString("en-US"); }
+function money2(n){ return "$" + n.toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function compact(n){
+  if (n >= 1e6) return "$" + (n/1e6).toFixed(1) + "M";
+  if (n >= 1e3) return "$" + Math.round(n/1e3) + "k";
+  return "$" + Math.round(n);
+}
+function payoffDate(months){
+  var d = new Date(); d.setDate(1);
+  d.setMonth(d.getMonth() + months);
+  return d.toLocaleDateString("en-US",{month:"short", year:"numeric"});
+}
+function stdPayment(bal, apr, n){
+  if (n <= 0 || bal <= 0) return 0;
+  var r = apr/100/12;
+  if (r === 0) return bal/n;
+  var f = Math.pow(1+r, -n);
+  return bal*r/(1-f);
+}
+/* Simulate the loan. Returns months to payoff, total interest,
+   and per-month end balances + cumulative interest. */
+function amortize(bal, apr, n, extra, lump){
+  var r = apr/100/12;
+  var b = bal - (lump||0);
+  if (b <= 0) return {months:0, interest:0, bals:[], ints:[]};
+  var pmt = stdPayment(bal, apr, n);
+  if (pmt + (extra||0) <= b*r && b > 0) return {months:Infinity, interest:Infinity, bals:[], ints:[]};
+  var pay = pmt + (extra||0);
+  var bals=[], ints=[], ci=0, m=0;
+  while (b > 0.005 && m < 1200){
+    m++;
+    var interest = b*r;
+    var princ = pay - interest;
+    if (princ <= 0){ return {months:Infinity, interest:Infinity, bals:[], ints:[]}; }
+    if (princ > b) princ = b;
+    ci += interest; b -= princ;
+    bals.push(Math.max(b,0)); ints.push(ci);
+  }
+  return {months:m, interest:ci, bals:bals, ints:ints};
+}
+function valAt(arr, m, fallback){
+  if (m <= 0) return arr.length ? arr[0]*0 + (fallback!==undefined?fallback:0) : 0;
+  if (m >= arr.length) return fallback!==undefined ? fallback : arr[arr.length-1];
+  return arr[m-1];
+}
+function render(){
+  var bal = Math.max(0, parseFloat($("bal").value)||0);
+  var apr = Math.max(0, parseFloat($("rate").value)||0);
+  var n = Math.max(0, (parseInt($("termY").value,10)||0)*12 + (parseInt($("termM").value,10)||0));
+  var extra = Math.max(0, parseFloat($("extra").value)||0);
+  var lump = Math.max(0, parseFloat($("lump").value)||0);
+  $("extraVal").textContent = money(extra);
+
+  if (bal <= 0 || n <= 0){
+    $("savedBig").textContent = "—";
+    $("savedSub").textContent = "enter your loan details to begin";
+    $("dateFast").textContent = "—"; $("dateBase").textContent = "—"; $("intSaved").textContent = "—";
+    $("payNote").textContent = "";
+    $("ytbody").innerHTML = "";
+    drawChart(null,null,bal);
+    return;
+  }
+
+  var base = amortize(bal, apr, n, 0, 0);
+  var fast = amortize(bal, apr, n, extra, lump);
+  var pmt = stdPayment(bal, apr, n);
+  $("payNote").textContent = "Standard payment: " + money2(pmt) + "/mo principal & interest" +
+    (extra>0 ? " · with your extra: " + money2(pmt+extra) + "/mo." : ".");
+
+  if (!isFinite(base.months)){
+    $("savedBig").textContent = "—";
+    $("savedSub").textContent = "these numbers never pay the loan off";
+    return;
+  }
+
+  var savedM = base.months - fast.months;
+  var intSaved = base.interest - fast.interest;
+  var yrs = Math.floor(savedM/12), mos = savedM%12;
+  $("savedBig").textContent = savedM<=0 ? "0 mo" :
+    (yrs>0 ? yrs+" yr"+(yrs>1?"s":"")+(mos>0?" "+mos+" mo":"") : mos+" mo");
+  $("savedSub").textContent = savedM<=0 ? "no extra payment, no time saved — drag the slider" : "of mortgage payments erased";
+  $("dateFast").textContent = payoffDate(fast.months);
+  $("dateBase").textContent = payoffDate(base.months);
+  $("intSaved").textContent = money(intSaved);
+
+  drawChart(base, fast, bal);
+  drawTable(base, fast, bal);
+}
+
+function drawChart(base, fast, bal){
+  var svg = $("chart"), NS = "http://www.w3.org/2000/svg";
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  var W=720,H=360,pl=58,pr=14,pt=14,pb=36;
+  var iw=W-pl-pr, ih=H-pt-pb;
+  function el(tag, attrs){ var e=document.createElementNS(NS,tag); for(var k in attrs) e.setAttribute(k,attrs[k]); return e; }
+  // axes frame even with no data
+  var xMax = base ? Math.max(base.months, 12) : 360;
+  var yMax = bal > 0 ? bal : 1;
+  function X(m){ return pl + (m/xMax)*iw; }
+  function Y(v){ return pt + ih - (v/yMax)*ih; }
+  // gridlines + y labels
+  for (var g=0; g<=4; g++){
+    var v = yMax*g/4;
+    svg.appendChild(el("line",{x1:pl,x2:W-pr,y1:Y(v),y2:Y(v),stroke:"#232320","stroke-width":1}));
+    var t = el("text",{x:pl-8,y:Y(v)+4,"text-anchor":"end",fill:"#8a8474","font-size":11,"font-family":"Georgia,serif"});
+    t.textContent = compact(v); svg.appendChild(t);
+  }
+  // x labels every 5 years
+  var step = 60;
+  for (var m=0; m<=xMax; m+=step){
+    var tx = el("text",{x:X(m),y:H-12,"text-anchor":"middle",fill:"#8a8474","font-size":11,"font-family":"Georgia,serif"});
+    tx.textContent = "Yr " + Math.round(m/12); svg.appendChild(tx);
+  }
+  if (!base) return;
+  function pathFor(s, color, width){
+    var d = "M " + X(0).toFixed(1) + " " + Y(bal).toFixed(1);
+    var stride = Math.max(1, Math.floor(s.months/240));
+    for (var m=stride; m<=s.months; m+=stride) d += " L " + X(m).toFixed(1) + " " + Y(s.bals[m-1]).toFixed(1);
+    d += " L " + X(s.months).toFixed(1) + " " + Y(0).toFixed(1);
+    svg.appendChild(el("path",{d:d, fill:"none", stroke:color, "stroke-width":width, "stroke-linejoin":"round"}));
+  }
+  pathFor(base, "#5c5c58", 2.5);
+  if (fast.months < base.months || fast.interest < base.interest) pathFor(fast, "#D4AF37", 3.5);
+  // payoff dots
+  svg.appendChild(el("circle",{cx:X(base.months),cy:Y(0),r:5,fill:"#5c5c58"}));
+  if (fast.months < base.months) svg.appendChild(el("circle",{cx:X(fast.months),cy:Y(0),r:6,fill:"#D4AF37",stroke:"#090909","stroke-width":2}));
+}
+
+function drawTable(base, fast, bal){
+  var tb = $("ytbody"); tb.innerHTML = "";
+  var years = Math.ceil(base.months/12);
+  for (var y=1; y<=years; y++){
+    var m = y*12;
+    var bB = m>=base.bals.length ? 0 : base.bals[m-1];
+    var iB = m>=base.ints.length ? base.interest : base.ints[m-1];
+    var bF = m>=fast.bals.length ? 0 : fast.bals[m-1];
+    var iF = m>=fast.ints.length ? fast.interest : fast.ints[m-1];
+    var tr = document.createElement("tr");
+    if (bF===0 && bB>0) tr.className = "done";
+    tr.innerHTML = "<td class='yr'>"+y+"</td><td>"+money(bB)+"</td><td>"+money(iB)+
+      "</td><td>"+money(bF)+"</td><td>"+money(iF)+"</td>";
+    tb.appendChild(tr);
+  }
+}
+
+/* scenarios */
+function getScens(){
+  try { var s = JSON.parse(localStorage.getItem(LSKEY)||"[]"); return Array.isArray(s)?s:[]; }
+  catch(e){ return []; }
+}
+function setScens(s){ try{ localStorage.setItem(LSKEY, JSON.stringify(s)); }catch(e){} }
+function snapshot(){
+  return { bal:$("bal").value, rate:$("rate").value, termY:$("termY").value,
+           termM:$("termM").value, extra:$("extra").value, lump:$("lump").value };
+}
+function renderScens(){
+  var list = $("scenList"); list.innerHTML = "";
+  var scens = getScens();
+  if (!scens.length){ list.innerHTML = "<p class='note'>No saved scenarios yet.</p>"; return; }
+  scens.forEach(function(s, i){
+    var d = document.createElement("div"); d.className = "scen";
+    var left = document.createElement("div");
+    left.innerHTML = "<div class='nm'>"+escapeHtml(s.name)+"</div><div class='meta'>"+escapeHtml(s.meta)+"</div>";
+    var acts = document.createElement("div"); acts.className = "acts";
+    var load = document.createElement("button"); load.className="linklike"; load.textContent="Load";
+    load.onclick = function(){
+      var v=s.inputs;
+      $("bal").value=v.bal; $("rate").value=v.rate; $("termY").value=v.termY;
+      $("termM").value=v.termM; $("extra").value=v.extra; $("lump").value=v.lump;
+      render();
+    };
+    var del = document.createElement("button"); del.className="linklike"; del.textContent="Delete";
+    del.onclick = function(){ var a=getScens(); a.splice(i,1); setScens(a); renderScens(); };
+    acts.appendChild(load); acts.appendChild(del);
+    d.appendChild(left); d.appendChild(acts); list.appendChild(d);
+  });
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+
+$("saveBtn").addEventListener("click", function(){
+  var v = snapshot();
+  var bal=parseFloat(v.bal)||0, apr=parseFloat(v.rate)||0;
+  var n=(parseInt(v.termY,10)||0)*12+(parseInt(v.termM,10)||0);
+  var extra=parseFloat(v.extra)||0, lump=parseFloat(v.lump)||0;
+  var base=amortize(bal,apr,n,0,0), fast=amortize(bal,apr,n,extra,lump);
+  var saved = (isFinite(base.months)&&isFinite(fast.months)) ? base.months-fast.months : 0;
+  var a=getScens();
+  a.push({ name:"Scenario "+(a.length+1)+" · "+money(extra)+"/mo extra",
+           meta: payoffDate(fast.months)+" payoff · "+money(base.interest-fast.interest)+" interest saved",
+           inputs:v });
+  setScens(a); renderScens();
+});
+
+["bal","rate","termY","termM","extra","lump"].forEach(function(id){
+  $(id).addEventListener("input", render);
+});
+renderScens();
+render();
+})();
+</script>
+</body>
+</html>
